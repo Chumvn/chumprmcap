@@ -1,0 +1,1382 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Prompt & Caption Generator</title>
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✨</text></svg>">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-light: #818cf8;
+            --secondary: #ec4899;
+            --bg-dark: #0f0f1a;
+            --bg-card: #1a1a2e;
+            --bg-card-hover: #252542;
+            --text-primary: #ffffff;
+            --text-secondary: #a1a1aa;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --success: #10b981;
+            --warning: #f59e0b;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 0;
+        }
+
+        .bg-animation::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 30% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 70% 80%, rgba(236, 72, 153, 0.1) 0%, transparent 50%);
+            animation: bgMove 20s ease-in-out infinite;
+        }
+
+        @keyframes bgMove {
+
+            0%,
+            100% {
+                transform: translate(0, 0);
+            }
+
+            50% {
+                transform: translate(-5%, -5%);
+            }
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            padding-bottom: 100px;
+        }
+
+        header {
+            text-align: center;
+            padding: 30px 0;
+        }
+
+        .logo {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .logo-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        h1 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--text-primary), var(--primary-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-top: 8px;
+        }
+
+        /* Main Tabs */
+        .main-tabs {
+            display: flex;
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 6px;
+            margin-bottom: 24px;
+            border: 1px solid var(--border-color);
+        }
+
+        .main-tab {
+            flex: 1;
+            padding: 14px 20px;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 12px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .main-tab:hover {
+            color: var(--text-primary);
+        }
+
+        .main-tab.active {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+        }
+
+        .main-tab .material-icons-round {
+            font-size: 20px;
+        }
+
+        /* Tab Content */
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Upload Area */
+        .upload-section {
+            margin-bottom: 24px;
+        }
+
+        .upload-area {
+            background: var(--bg-card);
+            border: 2px dashed var(--border-color);
+            border-radius: 20px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-area:hover {
+            border-color: var(--primary);
+            background: var(--bg-card-hover);
+            transform: translateY(-2px);
+        }
+
+        .upload-area.dragover {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .upload-area.has-image {
+            padding: 20px;
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            color: var(--primary);
+            margin-bottom: 16px;
+        }
+
+        .upload-text h3 {
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+        }
+
+        .upload-text p {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .preview-container {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .preview-container.show {
+            display: flex;
+        }
+
+        .preview-image {
+            max-width: 100%;
+            max-height: 250px;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .image-info {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .info-badge {
+            background: rgba(99, 102, 241, 0.2);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            color: var(--primary-light);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .info-badge .material-icons-round {
+            font-size: 14px;
+        }
+
+        .change-image-btn {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 8px 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .change-image-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary-light);
+        }
+
+        /* Options */
+        .options-section {
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .option-btn {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            padding: 12px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: left;
+        }
+
+        .option-btn:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        .option-btn.active {
+            background: rgba(99, 102, 241, 0.15);
+            border-color: var(--primary);
+        }
+
+        .option-btn .icon {
+            font-size: 22px;
+            margin-bottom: 6px;
+        }
+
+        .option-btn h4 {
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .option-btn p {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+        }
+
+        .style-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .style-chip {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            padding: 8px 14px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+        }
+
+        .style-chip:hover {
+            border-color: var(--primary);
+        }
+
+        .style-chip.active {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-color: transparent;
+            color: white;
+        }
+
+        /* Caption Options */
+        .caption-options {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .caption-option {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            padding: 14px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .caption-option:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--primary);
+        }
+
+        .caption-option.active {
+            background: rgba(99, 102, 241, 0.15);
+            border-color: var(--primary);
+        }
+
+        .caption-option .emoji {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .caption-option h4 {
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        /* Generate Button */
+        .generate-btn {
+            width: 100%;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border: none;
+            padding: 16px;
+            border-radius: 14px;
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 24px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .generate-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .generate-btn:hover::before {
+            left: 100%;
+        }
+
+        .generate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.3);
+        }
+
+        .generate-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Results */
+        .results-section {
+            display: none;
+        }
+
+        .results-section.show {
+            display: block;
+            animation: fadeInUp 0.5s ease;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .prompt-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 12px;
+            position: relative;
+        }
+
+        .prompt-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .prompt-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .copy-btn {
+            background: rgba(99, 102, 241, 0.2);
+            border: none;
+            padding: 8px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            color: var(--primary-light);
+            font-size: 0.75rem;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .copy-btn:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .copy-btn.copied {
+            background: var(--success);
+            color: white;
+        }
+
+        .prompt-text {
+            font-size: 0.9rem;
+            line-height: 1.7;
+            color: var(--text-primary);
+            background: rgba(0, 0, 0, 0.2);
+            padding: 14px;
+            border-radius: 10px;
+            border-left: 3px solid var(--primary);
+        }
+
+        /* Caption specific styles */
+        .caption-text {
+            font-size: 1rem;
+            line-height: 1.8;
+            color: var(--text-primary);
+            background: rgba(0, 0, 0, 0.2);
+            padding: 16px;
+            border-radius: 10px;
+            border-left: 3px solid var(--secondary);
+        }
+
+        /* Loading */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid var(--border-color);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+        }
+
+        footer a {
+            color: var(--primary-light);
+            text-decoration: none;
+        }
+
+        @media (max-width: 480px) {
+
+            .options-grid,
+            .caption-options {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 1.4rem;
+            }
+
+            .main-tab {
+                padding: 12px 16px;
+                font-size: 0.85rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="bg-animation"></div>
+
+    <div class="container">
+        <header>
+            <div class="logo">
+                <div class="logo-icon">✨</div>
+            </div>
+            <h1>AI Prompt & Caption</h1>
+            <p class="subtitle">Tự động sinh prompt nâng cấp ảnh & caption Việt Nam</p>
+        </header>
+
+        <!-- Main Tabs -->
+        <div class="main-tabs">
+            <button class="main-tab active" data-tab="prompt">
+                <span class="material-icons-round">auto_awesome</span>
+                Prompt AI
+            </button>
+            <button class="main-tab" data-tab="caption">
+                <span class="material-icons-round">edit_note</span>
+                Caption VN
+            </button>
+        </div>
+
+        <!-- Upload Section (shared) -->
+        <section class="upload-section">
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-content" id="uploadContent">
+                    <span class="material-icons-round upload-icon">cloud_upload</span>
+                    <div class="upload-text">
+                        <h3>Tải ảnh lên</h3>
+                        <p>Kéo thả hoặc nhấn để chọn ảnh</p>
+                    </div>
+                </div>
+                <div class="preview-container" id="previewContainer">
+                    <img id="previewImage" class="preview-image" alt="Preview">
+                    <div class="image-info" id="imageInfo"></div>
+                    <button class="change-image-btn" id="changeImageBtn">
+                        <span class="material-icons-round">refresh</span>
+                        Đổi ảnh
+                    </button>
+                </div>
+                <input type="file" id="fileInput" accept="image/*">
+            </div>
+        </section>
+
+        <!-- Tab 1: Prompt Content -->
+        <div class="tab-content active" id="promptTab">
+            <section class="options-section">
+                <h3 class="section-title">
+                    <span class="material-icons-round">auto_fix_high</span>
+                    Kiểu nâng cấp
+                </h3>
+                <div class="options-grid">
+                    <button class="option-btn active" data-type="enhance">
+                        <div class="icon">🎨</div>
+                        <h4>Nâng cấp tổng thể</h4>
+                        <p>Tăng chất lượng toàn diện</p>
+                    </button>
+                    <button class="option-btn" data-type="upscale">
+                        <div class="icon">📐</div>
+                        <h4>Tăng độ phân giải</h4>
+                        <p>Upscale & làm sắc nét</p>
+                    </button>
+                    <button class="option-btn" data-type="restore">
+                        <div class="icon">🔄</div>
+                        <h4>Phục hồi ảnh</h4>
+                        <p>Sửa ảnh cũ, hỏng</p>
+                    </button>
+                    <button class="option-btn" data-type="relight">
+                        <div class="icon">💡</div>
+                        <h4>Tối ưu ánh sáng</h4>
+                        <p>Cân bằng sáng & màu</p>
+                    </button>
+                </div>
+            </section>
+
+            <section class="options-section">
+                <h3 class="section-title">
+                    <span class="material-icons-round">palette</span>
+                    Phong cách
+                </h3>
+                <div class="style-chips">
+                    <button class="style-chip active" data-style="realistic">Chân thực</button>
+                    <button class="style-chip" data-style="cinematic">Cinematic</button>
+                    <button class="style-chip" data-style="vibrant">Rực rỡ</button>
+                    <button class="style-chip" data-style="soft">Nhẹ nhàng</button>
+                    <button class="style-chip" data-style="hdr">HDR</button>
+                    <button class="style-chip" data-style="vintage">Vintage</button>
+                </div>
+            </section>
+
+            <button class="generate-btn" id="generatePromptBtn" disabled>
+                <span class="material-icons-round">auto_awesome</span>
+                Tạo Prompt
+            </button>
+
+            <div class="loading" id="promptLoading">
+                <div class="spinner"></div>
+                <p>Đang phân tích ảnh...</p>
+            </div>
+
+            <section class="results-section" id="promptResults">
+                <h3 class="section-title">
+                    <span class="material-icons-round">description</span>
+                    Prompt được tạo
+                </h3>
+                <div id="promptCards"></div>
+            </section>
+        </div>
+
+        <!-- Tab 2: Caption Content -->
+        <div class="tab-content" id="captionTab">
+            <section class="options-section">
+                <h3 class="section-title">
+                    <span class="material-icons-round">mood</span>
+                    Chủ đề caption
+                </h3>
+                <div class="caption-options">
+                    <button class="caption-option active" data-mood="daily">
+                        <div class="emoji">☀️</div>
+                        <h4>Hàng ngày</h4>
+                    </button>
+                    <button class="caption-option" data-mood="travel">
+                        <div class="emoji">✈️</div>
+                        <h4>Du lịch</h4>
+                    </button>
+                    <button class="caption-option" data-mood="food">
+                        <div class="emoji">🍜</div>
+                        <h4>Ẩm thực</h4>
+                    </button>
+                    <button class="caption-option" data-mood="love">
+                        <div class="emoji">💕</div>
+                        <h4>Tình yêu</h4>
+                    </button>
+                    <button class="caption-option" data-mood="motivation">
+                        <div class="emoji">💪</div>
+                        <h4>Động lực</h4>
+                    </button>
+                    <button class="caption-option" data-mood="funny">
+                        <div class="emoji">😂</div>
+                        <h4>Hài hước</h4>
+                    </button>
+                    <button class="caption-option" data-mood="aesthetic">
+                        <div class="emoji">🌸</div>
+                        <h4>Aesthetic</h4>
+                    </button>
+                    <button class="caption-option" data-mood="deep">
+                        <div class="emoji">🌙</div>
+                        <h4>Sâu lắng</h4>
+                    </button>
+                </div>
+            </section>
+
+            <section class="options-section">
+                <h3 class="section-title">
+                    <span class="material-icons-round">format_quote</span>
+                    Phong cách viết
+                </h3>
+                <div class="style-chips">
+                    <button class="style-chip caption-style active" data-capstyle="cute">Dễ thương 🥰</button>
+                    <button class="style-chip caption-style" data-capstyle="cool">Cool ngầu 😎</button>
+                    <button class="style-chip caption-style" data-capstyle="poetic">Thơ mộng 🌿</button>
+                    <button class="style-chip caption-style" data-capstyle="gen-z">Gen Z 🔥</button>
+                </div>
+            </section>
+
+            <button class="generate-btn" id="generateCaptionBtn" disabled>
+                <span class="material-icons-round">edit_note</span>
+                Tạo Caption
+            </button>
+
+            <div class="loading" id="captionLoading">
+                <div class="spinner"></div>
+                <p>Đang tạo caption...</p>
+            </div>
+
+            <section class="results-section" id="captionResults">
+                <h3 class="section-title">
+                    <span class="material-icons-round">format_quote</span>
+                    Caption cho bạn
+                </h3>
+                <div id="captionCards"></div>
+            </section>
+        </div>
+
+        <footer>
+            Made with ❤️ by <a href="https://github.com/Chumvn" target="_blank">Chum</a>
+        </footer>
+    </div>
+
+    <script>
+        // DOM Elements
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const uploadContent = document.getElementById('uploadContent');
+        const previewContainer = document.getElementById('previewContainer');
+        const previewImage = document.getElementById('previewImage');
+        const imageInfo = document.getElementById('imageInfo');
+        const changeImageBtn = document.getElementById('changeImageBtn');
+
+        // Tabs
+        const mainTabs = document.querySelectorAll('.main-tab');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        // Prompt elements
+        const generatePromptBtn = document.getElementById('generatePromptBtn');
+        const promptLoading = document.getElementById('promptLoading');
+        const promptResults = document.getElementById('promptResults');
+        const promptCards = document.getElementById('promptCards');
+        const optionBtns = document.querySelectorAll('.option-btn');
+        const styleChips = document.querySelectorAll('.style-chip:not(.caption-style)');
+
+        // Caption elements
+        const generateCaptionBtn = document.getElementById('generateCaptionBtn');
+        const captionLoading = document.getElementById('captionLoading');
+        const captionResults = document.getElementById('captionResults');
+        const captionCards = document.getElementById('captionCards');
+        const captionOptions = document.querySelectorAll('.caption-option');
+        const captionStyles = document.querySelectorAll('.caption-style');
+
+        let currentImage = null;
+        let selectedType = 'enhance';
+        let selectedStyle = 'realistic';
+        let selectedMood = 'daily';
+        let selectedCapStyle = 'cute';
+
+        // Tab switching
+        mainTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                mainTabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+
+                tabContents.forEach(content => content.classList.remove('active'));
+                document.getElementById(tab.dataset.tab + 'Tab').classList.add('active');
+            });
+        });
+
+        // Prompt Templates
+        const promptTemplates = {
+            enhance: {
+                main: (style, analysis) => `Enhance this ${analysis.type} image with ${style} aesthetics. Improve overall quality, sharpen details, enhance colors and contrast. Maintain natural look while boosting visual appeal. Resolution: ${analysis.width}x${analysis.height}, preserve original composition. Apply professional-grade enhancement.`,
+                midjourney: (style, analysis) => `${analysis.description} --enhance --quality 2 --style ${style} --ar ${analysis.aspect} --v 6`,
+                dalle: (style, analysis) => `Enhance this image with ${style} style. Improve sharpness, color vibrancy, and overall quality while maintaining the original subject and composition. Professional photo enhancement.`,
+                stable: (style, analysis) => `masterpiece, best quality, highly detailed, ${style} style, enhanced, improved lighting, sharper details, vibrant colors, professional photography, 8k uhd`
+            },
+            upscale: {
+                main: (style, analysis) => `Upscale this ${analysis.width}x${analysis.height} image to 4K/8K resolution. Apply intelligent super-resolution maintaining ${style} quality. Enhance fine details, reduce noise, sharpen edges without artifacts.`,
+                midjourney: (style, analysis) => `${analysis.description} --upscale 4x --quality 2 --style ${style} --ar ${analysis.aspect} --v 6`,
+                dalle: (style, analysis) => `Upscale and enhance this image to higher resolution with ${style} aesthetics. Increase detail and sharpness. Remove any noise or compression artifacts.`,
+                stable: (style, analysis) => `(masterpiece:1.2), (best quality:1.2), (highres:1.2), ${style} style, ultra detailed, sharp focus, noise-free, upscaled, 8k resolution`
+            },
+            restore: {
+                main: (style, analysis) => `Restore and repair this ${analysis.type} image. Fix damage, scratches, color fading, and noise. Reconstruct missing details using AI. Apply ${style} enhancement after restoration.`,
+                midjourney: (style, analysis) => `${analysis.description}, restored, repaired, vintage photo restoration --quality 2 --style ${style} --ar ${analysis.aspect} --v 6`,
+                dalle: (style, analysis) => `Restore this damaged/old image. Remove scratches, fix color fading, repair torn areas, reduce noise. Apply ${style} enhancement.`,
+                stable: (style, analysis) => `(restored:1.3), (repaired:1.2), best quality, ${style} style, removed scratches, fixed colors, clear details, professional restoration`
+            },
+            relight: {
+                main: (style, analysis) => `Relight this ${analysis.type} image with ${style} lighting. Optimize exposure, balance shadows and highlights. Apply professional color grading. Fix underexposed/overexposed areas.`,
+                midjourney: (style, analysis) => `${analysis.description}, professional lighting, ${style} mood --quality 2 --lighting dramatic --ar ${analysis.aspect} --v 6`,
+                dalle: (style, analysis) => `Relight this image with improved lighting. Apply ${style} lighting style. Balance exposure, enhance shadows and highlights, add professional color grading.`,
+                stable: (style, analysis) => `(professional lighting:1.3), ${style} style, balanced exposure, enhanced shadows, beautiful highlights, color graded, cinematic lighting`
+            }
+        };
+
+        const styleDescriptions = {
+            realistic: 'natural, photorealistic, true-to-life',
+            cinematic: 'cinematic, movie-like, dramatic',
+            vibrant: 'vibrant, colorful, saturated',
+            soft: 'soft, gentle, pastel',
+            hdr: 'HDR, high dynamic range, detailed',
+            vintage: 'vintage, retro, film-like'
+        };
+
+        // Vietnamese Caption Templates
+        const captionTemplates = {
+            daily: {
+                cute: [
+                    "✨ Một ngày mới, một niềm vui mới nè! 🌸",
+                    "☀️ Hôm nay trời đẹp quá, lòng cũng đẹp theo 💕",
+                    "🌈 Cuộc sống đơn giản thôi mà sao thấy vui ghê 🥰",
+                    "💫 Cứ cười thôi, mọi thứ rồi sẽ ổn thôi mà 😊",
+                    "🍀 May mắn là được thức dậy mỗi ngày để yêu đời 💖"
+                ],
+                cool: [
+                    "😎 Sống như mình muốn, không cần giải thích 🔥",
+                    "💪 Ngày mới - Thử thách mới - Chiến thắng mới 🏆",
+                    "⚡ Không có gì là không thể, chỉ có chưa làm thôi 💯",
+                    "🖤 Đẹp trai/gái thì không cần filter 😏",
+                    "🔥 Chill thôi, đời có bao lâu đâu mà lo 🤙"
+                ],
+                poetic: [
+                    "🌿 Ngày qua ngày, lặng lẽ trôi như dòng nước trong xanh 🍃",
+                    "🌸 Mỗi khoảnh khắc đều là món quà từ cuộc sống 💫",
+                    "☁️ Để gió cuốn đi những muộn phiền, chỉ giữ lại nụ cười 🌙",
+                    "🌷 Sống chậm lại để cảm nhận những điều nhỏ bé nhưng ý nghĩa 🦋",
+                    "✨ Hãy để trái tim dẫn lối, và tâm hồn được tự do 🌻"
+                ],
+                "gen-z": [
+                    "💅 Slay cả ngày không nghỉ bestie ơi 🔥",
+                    "😭💅 Vibe check: đang ổn lắm nha 100 điểm 💯",
+                    "🫶 Real quá real luôn, không cap đâu 🗣️",
+                    "💀 I ốt đây, đừng tìm (chứ tag thì vẫn rep) ✌️",
+                    "🤡 Độ với đời chút, có sao đâu 😌✨"
+                ]
+            },
+            travel: {
+                cute: [
+                    "✈️ Đi đâu cũng được, miễn là bên cạnh bạn nè 💕",
+                    "🏖️ Biển xanh, cát trắng, nắng vàng và em đây 🌴",
+                    "🗺️ Thế giới rộng lớn, mình cứ đi rồi sẽ tìm thấy mình 🌸",
+                    "🎒 Xách ba lô lên và đi thôi! Cuộc sống ngắn lắm đó 🥰",
+                    "🌅 Hoàng hôn ở đây đẹp quá, ước gì được ở lại mãi 💫"
+                ],
+                cool: [
+                    "🌍 Collect moments, not things 📸",
+                    "⛰️ Đỉnh cao nào cũng chinh phục được 🔥",
+                    "🗿 Born to travel, forced to work 😎",
+                    "🏝️ Paradise found 🌴💯",
+                    "🧗 Adventure is out there, go get it 💪"
+                ],
+                poetic: [
+                    "🌅 Nơi chân trời gặp mặt biển, là nơi tim mình an yên 🌊",
+                    "🏔️ Núi cao chẳng ngại, đường dài chẳng sợ, chỉ sợ chẳng dám đi 🍃",
+                    "🌄 Mỗi miền đất đến là một câu chuyện được kể 📖",
+                    "🛤️ Đường đi mới biết non cao, lòng ta mới biết ta cao thế nào 🌙",
+                    "🌸 Du lịch không chỉ là đi, mà là tìm về với chính mình ✨"
+                ],
+                "gen-z": [
+                    "🧳 Workation mà các cụ, làm đâu cũng được 💻☀️",
+                    "📍 Check-in địa điểm hot trend đây nè 🔥",
+                    "🏃 Đi chơi về mệt xỉu nhưng worth it lắm 😵‍💫💅",
+                    "🗼 Địa điểm này xịn xò quá trời quá đất 🤯",
+                    "✈️ Bay thôi, tiền để làm gì không bay 🫡"
+                ]
+            },
+            food: {
+                cute: [
+                    "🍜 Ăn no rồi mới có sức yêu đời nè 😋💕",
+                    "🧁 Ngọt như cupcake, đáng yêu như mình 🥰",
+                    "🍳 Bữa sáng healthy cho một ngày năng động 🌸",
+                    "🍕 Calories don't count on weekends ha 😂💖",
+                    "🍵 Trà sữa và bạn thân = Combo hoàn hảo 🧋✨"
+                ],
+                cool: [
+                    "🍔 Foodie life is the best life 🔥",
+                    "🥩 Eat well, travel often, no regrets 💯",
+                    "🍣 Sushi time = Happy time 😎",
+                    "🍷 Good food, good mood 🖤",
+                    "🍜 Phở is love, phở is life 🇻🇳💪"
+                ],
+                poetic: [
+                    "☕ Cà phê buổi sáng, thanh thản cả ngày 🌿",
+                    "🍃 Mỗi món ăn là một câu chuyện, mỗi vị là một kỷ niệm 🌸",
+                    "🍵 Nhâm nhi từng giọt trà, thời gian như ngừng trôi 🌙",
+                    "🌾 Cơm mẹ nấu, hương vị của yêu thương 💫",
+                    "🥢 Ẩm thực Việt Nam - Tinh hoa của đất trời 🇻🇳✨"
+                ],
+                "gen-z": [
+                    "🍜 Ăn xong review liền, trust me bro ngon lắm 🔥",
+                    "🧋 Trà sữa 3 ly một ngày, broke nhưng worth 💅",
+                    "🍕 Cheat day không có tội nha, tội là không ăn 😭",
+                    "🍱 Flex bữa ăn xịn xò, ai cho tui tự nấu 👩‍🍳✨",
+                    "🥗 Eat clean được 1 bữa, 2 bữa còn lại ăn bù 🤡"
+                ]
+            },
+            love: {
+                cute: [
+                    "💕 Có người để thương là điều hạnh phúc nhất 🥰",
+                    "💑 Bên nhau là đủ, không cần gì thêm 🌸",
+                    "💖 Yêu một người là muốn cùng họ đi hết cuộc đời 💫",
+                    "🥺 Anh/Em là điều tuyệt vời nhất xảy ra với em/anh 💕",
+                    "👫 Home is not a place, it's a person 🏠💖"
+                ],
+                cool: [
+                    "🖤 You and me against the world 🔥",
+                    "💍 Partners in crime, lovers in life 😎",
+                    "⚡ Two souls, one heart, infinite love 💯",
+                    "🌹 Love like there's no tomorrow 🖤",
+                    "💪 My ride or die, my everything 👊"
+                ],
+                poetic: [
+                    "🌙 Em là ánh trăng, soi sáng đêm dài của anh 💫",
+                    "🌸 Yêu một người là để những mùa hoa nở trong lòng 🌷",
+                    "✨ Có em, ngày nào cũng là ngày đẹp trời 🌅",
+                    "🦋 Tình yêu đến nhẹ nhàng như cánh bướm trong vườn 🌿",
+                    "🌹 Dù bao mùa đi qua, tình này vẫn không đổi thay 💕"
+                ],
+                "gen-z": [
+                    "💅 Đã có bồ, đừng thả thính 🙅‍♀️",
+                    "🤡 Single? No. In a relationship? Also no. IQ? Yes 😵‍💫",
+                    "💀 Crush không nhìn mình nhưng mình vẫn yêu 😭💔",
+                    "🫶 My person đây rồi, stop searching 🔒",
+                    "😎 Taken và happy lắm nha, hông có available đâu 💕"
+                ]
+            },
+            motivation: {
+                cute: [
+                    "🌸 Cố lên nào, mọi thứ rồi sẽ tốt đẹp thôi! 💪💕",
+                    "✨ Bạn giỏi hơn bạn nghĩ rất nhiều đấy 🥰",
+                    "🌈 Sau cơn mưa trời lại sáng, tin mình đi 🌤️",
+                    "💖 Hãy là phiên bản tốt nhất của chính mình 🌟",
+                    "🍀 Mỗi ngày là một cơ hội mới để tỏa sáng 💫"
+                ],
+                cool: [
+                    "🔥 The only limit is you. Break it! 💪",
+                    "⚡ Champions are made when no one is watching 🏆",
+                    "💯 Stay hungry, stay foolish 🚀",
+                    "🖤 If it doesn't challenge you, it won't change you 😎",
+                    "💪 Winners never quit, quitters never win 🔥"
+                ],
+                poetic: [
+                    "🌅 Mỗi bình minh là một khởi đầu mới, hãy sống trọn vẹn 🌸",
+                    "🦅 Bay cao để thấy thế giới rộng lớn, chứ không phải vấn đề nhỏ bé 💫",
+                    "🌿 Thất bại không phải là ngã, mà là không đứng dậy 🌱",
+                    "✨ Hãy để những giấc mơ của hôm nay thành hiện thực của ngày mai 🌙",
+                    "🌻 Sống như hoa hướng dương, luôn hướng về phía mặt trời 🌞"
+                ],
+                "gen-z": [
+                    "💪 Grind không nghỉ, thành công tự đến 📈",
+                    "🔥 Haters gonna hate, winners gonna win 😎",
+                    "💅 Boss up bestie, đừng để ai bảo mình không được 🗣️",
+                    "🚀 Hustle hard = Play hard = Win hard 💯",
+                    "💀 Tired? Sleep later. Successful? That's the goal 🎯"
+                ]
+            },
+            funny: {
+                cute: [
+                    "🤪 Mặt cute nhưng lười vô đối luôn nè 😂💕",
+                    "🐸 Ú ù, đây là mình khi thấy đồ ăn 🍕",
+                    "😅 Năng nhông động nhông là mình đây 🌸",
+                    "🤭 Xinh gái/trai thì được quyền nhõng nhẽo 💖",
+                    "😋 Ăn no ngủ kỹ là bí quyết trẻ đẹp 🥰"
+                ],
+                cool: [
+                    "😎 Người ta gọi tui là... cũng hông ai gọi 🤷",
+                    "🙃 I'm not lazy, I'm on energy saving mode 🔋",
+                    "💀 My wallet is like an onion, opening it makes me cry 😭",
+                    "🤡 Professionally lost but making it look good 💅",
+                    "😏 Sorry I'm late, I didn't want to come 🚪"
+                ],
+                poetic: [
+                    "🌙 Đêm khuya suy nghĩ về đời... chủ yếu là nghĩ về ăn gì 🍜",
+                    "🌸 Hoa nở hay tôi nở, có khi là cái ví nở thôi 💸",
+                    "☁️ Mây trôi bồng bềnh, như lương tháng này trôi đi mất 😭",
+                    "🦋 Bướm đẹp thế mà còn bay, tui đẹp thế mà chỉ nằm 🛋️",
+                    "✨ Sống chậm lại vì... không có tiền đi nhanh 🐢"
+                ],
+                "gen-z": [
+                    "💀 I ốt đây, đời có gì đáng để tỉnh táo đâu 😵‍💫",
+                    "🤡 Xu nào cũng vậy, nghèo nhất định 💸",
+                    "😭 Crush có người yêu r, mình cũng có... điện thoại 📱",
+                    "🫠 Motivation hôm nay: không có ạ 📉",
+                    "💅 It's giving... broke but make it fashion 👗"
+                ]
+            },
+            aesthetic: {
+                cute: [
+                    "🌸 Dreamy vibes only 💭💕",
+                    "🦋 Soft and sweet like cotton candy ☁️",
+                    "✨ Living in a fairytale 🏰💖",
+                    "🌷 Pretty in pink, pretty in everything 🎀",
+                    "🍃 Gentle soul, gentle heart 🤍"
+                ],
+                cool: [
+                    "🖤 Dark aesthetic, bright soul ✨",
+                    "🌙 Midnight thoughts, golden dreams 💫",
+                    "⛓️ Chaos with class 🔥",
+                    "🕊️ Clean aesthetic, messy life 😎",
+                    "💎 Rare like a diamond, shine like one too ✨"
+                ],
+                poetic: [
+                    "🌿 Giữa ồn ào cuộc sống, tìm một góc bình yên 🌸",
+                    "🌙 Đêm tĩnh lặng, tâm hồn được tự do bay bổng ✨",
+                    "🦢 Thanh lịch như thiên nga, nhẹ nhàng như mây trôi ☁️",
+                    "🌷 Vẻ đẹp không cần điểm tô, tự nó đã rực rỡ 💫",
+                    "🍃 Có những khoảnh khắc đẹp đến nao lòng 🌅"
+                ],
+                "gen-z": [
+                    "✨ Vibes immaculate, energy unmatched 💅",
+                    "🌙 Dark academia but make it Vietnamese 📚",
+                    "🦋 Cottagecore aesthetic đê các bạn ơi 🌸",
+                    "💫 Pinterest reality check: nailed it 📸",
+                    "🖤 Giving main character energy ✨"
+                ]
+            },
+            deep: {
+                cute: [
+                    "🌙 Đêm nay suy nghĩ nhiều quá, nhưng vẫn yêu đời nè 💕",
+                    "🌸 Mỗi người đều có câu chuyện riêng của mình 🥰",
+                    "✨ Chấp nhận bản thân là bước đầu tiên để hạnh phúc 💖",
+                    "🌈 Không hoàn hảo cũng không sao, mình vẫn đáng yêu mà 🥺",
+                    "💫 Thời gian sẽ chữa lành mọi vết thương 🌿"
+                ],
+                cool: [
+                    "🖤 Pain made me, but it won't break me 💪",
+                    "🌙 Silence speaks louder than words 🔥",
+                    "⚔️ What doesn't kill you makes you stronger 💯",
+                    "🌪️ From the storm, a warrior is born 😎",
+                    "💎 Pressure makes diamonds 💎"
+                ],
+                poetic: [
+                    "🌙 Trong đêm tối nhất, vẫn tìm thấy ánh sao ✨",
+                    "🌊 Sóng có lúc dữ dội, có lúc êm đềm, như cuộc đời này 🌅",
+                    "🍂 Lá rụng để mùa xuân lại về, nỗi buồn qua để niềm vui đến 🌸",
+                    "🌿 Có những nỗi đau chỉ mình mình hiểu, và chỉ mình chữa lành 💫",
+                    "🦅 Bay cao hơn những giông bão, vì ta sinh ra để tự do 🌙"
+                ],
+                "gen-z": [
+                    "💀 Overthinking at 3am, again 🌙",
+                    "🫠 Healing era nhưng cũng có lúc breakdown 😭",
+                    "💅 Trauma response nhưng make it quirky ✨",
+                    "🖤 Emotionally unavailable but still want love 💔",
+                    "🌙 Sad hours activated, nhưng vẫn slay 💅"
+                ]
+            }
+        };
+
+        // Upload handlers
+        uploadArea.addEventListener('click', (e) => {
+            if (e.target !== changeImageBtn && !changeImageBtn.contains(e.target)) {
+                fileInput.click();
+            }
+        });
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) {
+                handleFile(file);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files[0]) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        changeImageBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            fileInput.click();
+        });
+
+        function handleFile(file) {
+            currentImage = file;
+            const reader = new FileReader();
+
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    previewImage.src = e.target.result;
+
+                    const width = img.width;
+                    const height = img.height;
+                    const aspect = (width / height).toFixed(2);
+                    const size = (file.size / 1024).toFixed(1);
+
+                    imageInfo.innerHTML = `
+                        <span class="info-badge">
+                            <span class="material-icons-round">straighten</span>
+                            ${width} × ${height}
+                        </span>
+                        <span class="info-badge">
+                            <span class="material-icons-round">aspect_ratio</span>
+                            ${aspect}:1
+                        </span>
+                        <span class="info-badge">
+                            <span class="material-icons-round">save</span>
+                            ${size} KB
+                        </span>
+                    `;
+
+                    uploadContent.style.display = 'none';
+                    previewContainer.classList.add('show');
+                    uploadArea.classList.add('has-image');
+                    generatePromptBtn.disabled = false;
+                    generateCaptionBtn.disabled = false;
+                };
+                img.src = e.target.result;
+            };
+
+            reader.readAsDataURL(file);
+        }
+
+        // Option buttons for prompts
+        optionBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                optionBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                selectedType = btn.dataset.type;
+            });
+        });
+
+        styleChips.forEach(chip => {
+            chip.addEventListener('click', () => {
+                styleChips.forEach(c => c.classList.remove('active'));
+                chip.classList.add('active');
+                selectedStyle = chip.dataset.style;
+            });
+        });
+
+        // Caption options
+        captionOptions.forEach(opt => {
+            opt.addEventListener('click', () => {
+                captionOptions.forEach(o => o.classList.remove('active'));
+                opt.classList.add('active');
+                selectedMood = opt.dataset.mood;
+            });
+        });
+
+        captionStyles.forEach(style => {
+            style.addEventListener('click', () => {
+                captionStyles.forEach(s => s.classList.remove('active'));
+                style.classList.add('active');
+                selectedCapStyle = style.dataset.capstyle;
+            });
+        });
+
+        // Generate prompts
+        generatePromptBtn.addEventListener('click', async () => {
+            if (!currentImage) return;
+
+            promptLoading.classList.add('show');
+            promptResults.classList.remove('show');
+            generatePromptBtn.disabled = true;
+
+            await new Promise(resolve => setTimeout(resolve, 1200));
+
+            const analysis = analyzeImage();
+            const prompts = generatePrompts(analysis);
+            displayPrompts(prompts);
+
+            promptLoading.classList.remove('show');
+            promptResults.classList.add('show');
+            generatePromptBtn.disabled = false;
+        });
+
+        // Generate captions
+        generateCaptionBtn.addEventListener('click', async () => {
+            if (!currentImage) return;
+
+            captionLoading.classList.add('show');
+            captionResults.classList.remove('show');
+            generateCaptionBtn.disabled = true;
+
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            const captions = generateCaptions();
+            displayCaptions(captions);
+
+            captionLoading.classList.remove('show');
+            captionResults.classList.add('show');
+            generateCaptionBtn.disabled = false;
+        });
+
+        function analyzeImage() {
+            const img = previewImage;
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            ctx.drawImage(img, 0, 0);
+
+            const aspect = canvas.width / canvas.height;
+            let type = 'general';
+            if (aspect > 1.5) type = 'landscape';
+            else if (aspect < 0.8) type = 'portrait';
+            else type = 'square format';
+
+            const descriptions = [
+                'a detailed scene with interesting composition',
+                'subjects with natural lighting',
+                'a moment captured with artistic intent'
+            ];
+
+            return {
+                width: canvas.width,
+                height: canvas.height,
+                aspect: aspect > 1 ? `${Math.round(aspect * 10) / 10}:1` : `1:${Math.round(10 / aspect) / 10}`,
+                type: type,
+                description: descriptions[Math.floor(Math.random() * descriptions.length)]
+            };
+        }
+
+        function generatePrompts(analysis) {
+            const style = styleDescriptions[selectedStyle];
+            const templates = promptTemplates[selectedType];
+
+            return {
+                main: { label: '📝 Prompt Chính', text: templates.main(style, analysis) },
+                midjourney: { label: '🎨 Midjourney', text: templates.midjourney(style, analysis) },
+                dalle: { label: '🤖 DALL-E', text: templates.dalle(style, analysis) },
+                stable: { label: '🖼️ Stable Diffusion', text: templates.stable(style, analysis) }
+            };
+        }
+
+        function generateCaptions() {
+            const moodCaptions = captionTemplates[selectedMood][selectedCapStyle];
+            // Shuffle and pick 4 captions
+            const shuffled = [...moodCaptions].sort(() => 0.5 - Math.random());
+            return shuffled.slice(0, 4);
+        }
+
+        function displayPrompts(prompts) {
+            promptCards.innerHTML = '';
+            for (const [key, prompt] of Object.entries(prompts)) {
+                const card = document.createElement('div');
+                card.className = 'prompt-card';
+                card.innerHTML = `
+                    <div class="prompt-card-header">
+                        <span class="prompt-label">${prompt.label}</span>
+                        <button class="copy-btn" onclick="copyText(this, 'prompt-${key}')">
+                            <span class="material-icons-round">content_copy</span>
+                            Copy
+                        </button>
+                    </div>
+                    <div class="prompt-text" id="prompt-${key}">${prompt.text}</div>
+                `;
+                promptCards.appendChild(card);
+            }
+        }
+
+        function displayCaptions(captions) {
+            captionCards.innerHTML = '';
+            captions.forEach((caption, index) => {
+                const card = document.createElement('div');
+                card.className = 'prompt-card';
+                card.innerHTML = `
+                    <div class="prompt-card-header">
+                        <span class="prompt-label">💬 Caption ${index + 1}</span>
+                        <button class="copy-btn" onclick="copyText(this, 'caption-${index}')">
+                            <span class="material-icons-round">content_copy</span>
+                            Copy
+                        </button>
+                    </div>
+                    <div class="caption-text" id="caption-${index}">${caption}</div>
+                `;
+                captionCards.appendChild(card);
+            });
+        }
+
+        window.copyText = function (btn, id) {
+            const text = document.getElementById(id).textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                btn.classList.add('copied');
+                btn.innerHTML = `<span class="material-icons-round">check</span> Đã copy!`;
+                setTimeout(() => {
+                    btn.classList.remove('copied');
+                    btn.innerHTML = `<span class="material-icons-round">content_copy</span> Copy`;
+                }, 2000);
+            });
+        };
+    </script>
+</body>
+
+</html>
